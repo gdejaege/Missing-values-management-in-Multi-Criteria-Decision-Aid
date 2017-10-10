@@ -4,7 +4,7 @@ import promethee as prom
 import data_reader as dr
 
 
-def test_ranking():
+def test_ranking(dataset='HDI'):
     """Test that PII computes the same ranking that in the article RobustPII.
 
     The following mappings should however be applied between countries and and
@@ -42,17 +42,24 @@ def test_ranking():
         7::-0.28859649122807074
         12::-0.3657894736842105
     """
-    data_set = 'data/HDI/raw.csv'
-    alts = dr.open_raw(data_set)[0]
-    weights = [0.5, 0.5]
-    ceils = [3, 3]
-    promethee = prom.PrometheeII(alts, weights=weights, ceils=ceils)
-    # promethee.scores = promethee.compute_scores()
+    data_set = 'data/' + dataset + '/raw.csv'
+    alts, weights = dr.open_raw(data_set)[0][0:20], dr.open_raw(data_set)[1]
+    # print(alts)
+    if weights == []:
+        weights = None
+    if dataset == 'HDI':
+        weights = [0.5, 0.5]
+        ceils = [3, 3]
+        promethee = prom.PrometheeII(alts, weights=weights, ceils=ceils)
+    else:
+        seed = 1
+        promethee = prom.PrometheeII(alts, weights=weights, seed=seed)
+        print(promethee.ceils, promethee.weights)
+        print(sum(promethee.weights))
     scores = promethee.scores
-    # promethee.ranking = promethee.compute_ranking(scores)
     rank = promethee.ranking
     for i in range(len(rank)):
-        print(str(rank[i]) + '::' + str(scores[rank[i]]))
+        print(str(rank[i] + 1) + '::' + str(scores[rank[i]]))
 
 
 def test_rr_counting_function():
