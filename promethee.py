@@ -7,11 +7,14 @@ other usefull functions are implemented such as:
       instanciation are equal.
 """
 
+import numpy as np
 from math import exp
 from scipy import stats
 import random
 import data_reader as dr
+import copy
 
+NULL = '*'
 
 """Preference function classes."""
 
@@ -153,6 +156,8 @@ class PrometheeII:
         self.ceils = ceils
         self.pref_functions = [PreferenceType5(0, ceil) for ceil in ceils]
 
+        self.pi = self.compute_pairwise_pref()
+
         self.scores = self.compute_netflow()
         self.ranking = self.compute_ranking(self.scores)
 
@@ -193,26 +198,35 @@ class PrometheeII:
 
         diff = []
         for criterion in eval_per_criterion:
-            diff.append(max(criterion) - min(criterion))
+            criterion_cleaned = [a for a in criterion if a != NULL]
+            diff.append(max(criterion_cleaned) - min(criterion_cleaned))
 
         return diff
 
-    def compute_pairwise_pref(self, alternatives, weights, pref_funct_crit):
+    def compute_pairwise_pref(self, alternatives=None, weights=None,
+                              pref_funcs=None):
         """Return the pairwise preference matrix Pi.
 
         Inputs:
             alternatives - matrix composed of one list of evaluations for each
                            alternative.
             weights - list of weights of the criteria.
-            pref_funct_crit - list of the preference functions for all criteria.
+            pref_funcs - list of the preference functions for all criteria.
 
         """
+        if alternatives is None:
+            alternatives = self.alternatives
+        if weights is None:
+            weights = self.weights
+        if pref_funcs is None:
+            pref_funcs = self.pref_functions
+
         pi = [[0 for alt in alternatives] for alt in alternatives]
         for i, alti in enumerate(alternatives):
             for j, altj in enumerate(alternatives):
                 for k in range(len(weights)):
                     weight = weights[k]
-                    pref_function = pref_funct_crit[k]
+                    pref_function = pref_funcs[k]
                     valAlti = alti[k]
                     valAltj = altj[k]
                     diff = valAlti - valAltj
@@ -386,3 +400,157 @@ class PrometheeII:
             del init_copy[0]
             del new_copy[j]
         return rr_instances
+
+
+class PrometheeMV(PrometheeII):
+
+    """Use Promethee with missing values by replacing the pij."""
+
+    def __init__(self, alternatives, seed=0, alt_num=-1, ceils=None,
+                 weights=None, coefficients=None, method='median'):
+        """Constructor."""
+        if method == 'median':
+            self.method = self.replace_by_median
+        elif method == 'mean':
+            self.method = self.replace_by_mean
+
+        super().__init__(alternatives=alternatives, seed=seed, alt_num=alt_num,
+                         ceils=ceils, coefficients=coefficients,
+                         weights=weights)
+
+    def compute_netflow(self, alternatives=None, weights=None, pref_funcs=None):
+        """Compute the netflow of the alternatives.
+
+        Inputs:
+            alternatives - matrix composed of one list of evaluations for each
+                           alternative.
+            weights      - list of weights of the criteria.
+            pref_functs  - list of the preference functions for all criteria.
+
+        Output :
+            netflows[i] = score of the ith alternative in alternatives(input)
+        """
+        if alternatives is None and pref_funcs is None and weights is None:
+            Pi = self.pi
+        else:
+            Pi = self.compute_pairwise_pref(alternatives, weights, pref_funcs)
+
+        if alternatives is None:
+            alternatives = self.alternatives
+
+        netflows = []
+        if (len(alternatives) == 1):
+                return [1]
+
+        n = len(alternatives)
+        for i in range(n):
+            flow = 0
+            for j in range(n):
+                if i == j:
+                    continue
+                flow += Pi[i][j] - Pi[j][i]
+            flow = flow / (len(alternatives) - 1)
+            netflows.append(flow)
+        print('ok')
+        return netflows
+
+    def compute_pairwise_pref(self, alternatives=None, weights=None,
+                              pref_funcs=None):
+        """Return the pairwise preference matrix Pi with missing evaluations.
+
+        Inputs:
+            alternatives - matrix composed of one list of evaluations for each
+                           alternative.
+            weights - list of weights of the criteria.
+            pref_funcs - list of the preference functions for all criteria.
+
+        The missing evaluations are handled by replacing Pc[a, '*'] with the
+        mean/median of Pc[a, x] or by using the NNB.
+
+        """
+        if alternatives is None:
+            alternatives = self.alternatives
+        if weights is None:
+            weights = self.weights
+        if pref_funcs is None:
+            pref_funcs = self.pref_functions
+
+        P = self.compute_pairwise_comparisons(alternatives, pref_funcs)
+        pi = [[0 for alt in alternatives] for alt in alternatives]
+        for i, alti in enumerate(alternatives):
+            for j, altj in enumerate(alternatives):
+                for c in range(len(weights)):
+                    weight = weights[c]
+                    pi[i][j] += weight * P[c][i][j]
+                    pi[j][i] += weight * P[c][j][i]
+        return pi
+
+    def compute_pairwise_comparisons(self, A, pref_functs):
+        """Compute the Pcij comparions matrix."""
+        n = len(A)
+        k = len(A[0])
+        P = [[[0 for i in range(n)] for j in range(n)] for t in range(k)]
+
+        for c in range(k):
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if A[i][c] == NULL or A[j][c] == NULL:
+                        P[c][i][j] = NULL
+                        P[c][j][i] = NULL
+                    else:
+                        diff = A[i][c] - A[j][c]
+                        P[c][i][j] = pref_functs[c].value(diff)
+                        P[c][j][i] = pref_functs[c].value(-diff)
+        self.replace_missing_comparisons(P, A)
+        return P
+
+    def replace_missing_comparisons(self, P, A):
+        """Replace missing comparisons."""
+        n = len(A)
+        k = len(A[0])
+        P_copy = copy.deepcopy(P)
+        for c in range(k):
+            Pc = P_copy[c]
+            for i in range(n):
+                for j in range(i + 1, n):
+                    if Pc[i][j] == NULL:
+                        if A[i][c] == NULL and A[j][c] == NULL:
+                            P[c][i][j] = 0
+                        elif A[j][c] == NULL:
+                            P[c][j][i] = self.method(P_copy, i, c, 'col')
+                            P[c][i][j] = self.method(P_copy, i, c, 'row')
+                        else:
+                            P[c][i][j] = self.method(P_copy, j, c, 'col')
+                            P[c][j][i] = self.method(P_copy, j, c, 'row')
+
+    def replace_by_median(self, P, y, c, direction):
+        """Replace Pc(y,*),Pc(*,y) by median of Pc(y,x), Pc(x,y) for all x.
+
+        Input
+            direction : 'row' if Pc(y, *), 'col' if Pc(*, y) to replace
+        """
+        # print(P)
+        # print('c = ' + str(c))
+        # print('y = ' + str(y))
+        # print('direction = ' + str(direction))
+        if direction == 'row':
+            values = [pyx for pyx in P[c][y] if pyx != NULL]
+        else:
+            values = [px[y] for px in P[c] if px[y] != NULL]
+        return np.median(values)
+
+    def replace_by_mean(self, P, y, c, direction):
+        """Replace Pc(y,*),Pc(*,y) by mean of Pc(y,x), Pc(x,y) for all x.
+
+        Input
+            direction : 'row' if Pc(y, *), 'col' if Pc(*, y) to replace
+        """
+        # print(P)
+        # print('c = ' + str(c))
+        # print('y = ' + str(y))
+        # print('direction = ' + str(direction))
+        if direction == 'row':
+            values = [pyx for pyx in P[c][y] if pyx != NULL]
+        else:
+            values = [px[y] for px in P[c] if px[y] != NULL]
+        return np.mean(values)
