@@ -3,12 +3,13 @@
 import promethee as prom
 import missing_values as mv
 import data_reader as dr
+import copy
 
 
 def test_ranking(dataset='HDI'):
     """Test that PIIMV computes same ranking as PII when no missing value."""
     data_set = 'data/' + dataset + '/raw.csv'
-    alts, weights = dr.open_raw(data_set)[0][0:20], dr.open_raw(data_set)[1]
+    alts, weights = dr.open_raw(data_set)[0][0:5], dr.open_raw(data_set)[1]
     # print(alts)
     # print(weights)
     if weights == []:
@@ -29,7 +30,7 @@ def test_ranking(dataset='HDI'):
     rankMV = prometheeMV.ranking
     for i in range(len(rank)):
         print(str(rank[i] + 1) + '::' + str(scores[rank[i]]) + " :::: " +
-              str(rankMV[i] + 1) + '::' + str(scores[rank[i]]))
+              str(rankMV[i] + 1) + '::' + str(scoresMV[rank[i]]))
 
 
 def test_replacements():
@@ -68,16 +69,33 @@ def myf(b):
 
 
 def test_PMV(dataset="HDI"):
-    """Test PMV with this time missing values."""
+    """Test PMV with, this time, missing values."""
     data_set = 'data/' + dataset + '/raw.csv'
-    alts = dr.open_raw(data_set)[0]
-    proportion = 0.05
+    alts = dr.open_raw(data_set)[0][:10]
+    proportion = 0.2
     seed = 1
+    print("complete :")
+    prom.printmatrix(alts)
+    original_alts = copy.deepcopy(alts)
     mv.delete_evaluations(alts, proportion, seed)
-    print(alts)
+    print("incomplete :")
+    prom.printmatrix(alts)
 
+    print("Promethee:")
+    promethee = prom.PrometheeII(original_alts, seed=seed)
+    rank = promethee.ranking
+    scores = promethee.scores
+
+    print("PrometheeMV without missing:")
+    prometheeMV1 = prom.PrometheeMV(original_alts, seed=seed)
+    rankMV1 = prometheeMV1.ranking
+    scoresMV1 = prometheeMV1.scores
+
+    print("PrometheeMV:")
     prometheeMV = prom.PrometheeMV(alts, seed=seed)
     rankMV = prometheeMV.ranking
+    scoresMV = prometheeMV.scores
     for i in range(len(rank)):
         print(str(rank[i] + 1) + '::' + str(scores[rank[i]]) + " :::: " +
-              str(rankMV[i] + 1) + '::' + str(scores[rank[i]]))
+              str(rankMV1[i] + 1) + '::' + str(scoresMV1[rank[i]]) + " :::: " +
+              str(rankMV[i] + 1) + '::' + str(scoresMV[rank[i]]))

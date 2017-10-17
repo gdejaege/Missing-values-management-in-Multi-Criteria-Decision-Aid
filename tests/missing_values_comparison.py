@@ -23,8 +23,9 @@ def compare_rankings_once(all_alts, alt_num, weights):
     alts_knn = mv.replace_by_neighboors(alts_95pc)
 
     PII = prom.PrometheeII(alts, weights=weights, seed=seed)
-    PMV = prom.PrometheeMV(alts, weights=weights, seed=seed)
+    PMV = prom.PrometheeMV(alts_95pc, weights=weights, seed=seed)
     ranking_init = PII.ranking
+    ranking_pij = PMV.ranking
 
     score = PII.compute_netflow(alts_mean)
     ranking_mean = PII.compute_ranking(score)
@@ -45,7 +46,8 @@ def compare_rankings_once(all_alts, alt_num, weights):
 #
     kendall_taus = {'knn': stats.kendalltau(ranking_init, ranking_knn)[0],
                     'mean': stats.kendalltau(ranking_init, ranking_mean)[0],
-                    'med': stats.kendalltau(ranking_init, ranking_med)[0]}
+                    'med': stats.kendalltau(ranking_init, ranking_med)[0],
+                    'pij': stats.kendalltau(ranking_init, ranking_pij)[0]}
     return kendall_taus
 
 
@@ -55,31 +57,37 @@ def compare_rankings(alt_num=20, it=500):
     tau_knn_tot = 0
     tau_med_tot = 0
     tau_mean_tot = 0
-    datasets = ('SHA', 'EPI', 'HP')
+    tau_pij_tot = 0
+    datasets = ('HR', 'SHA', 'EPI', 'HP')
     for dataset in datasets:
         filename = 'data/' + dataset + '/raw.csv'
         all_alts, weights = dr.open_raw(filename)[0], dr.open_raw(filename)[1]
-        print(len(all_alts))
+        # print(len(all_alts))
         if weights == []:
             weights = None
 
-        tau_knn, tau_mean, tau_med = 0, 0, 0
+        tau_knn, tau_mean, tau_med, tau_pij = 0, 0, 0, 0
         for i in range(it):
             taus = compare_rankings_once(all_alts, alt_num, weights)
             tau_knn += taus['knn']
             tau_med += taus['med']
             tau_mean += taus['mean']
+            tau_pij += taus['pij']
 
         tau_knn_tot += tau_knn
         tau_med_tot += tau_med
         tau_mean_tot += tau_mean
+        tau_pij_tot += tau_pij
 
         print('data set:: ' + dataset)
         print('tau knn :: ' + str(tau_knn/it))
         print('tau med :: ' + str(tau_med/it))
         print('tau mean :: ' + str(tau_mean/it))
+        print('tau pij :: ' + str(tau_pij/it))
 
+    print()
     print('total average tau:')
     print('tau knn :: ' + str(tau_knn_tot/(len(datasets)*it)))
     print('tau med :: ' + str(tau_med_tot/(len(datasets)*it)))
     print('tau mean :: ' + str(tau_mean_tot/(len(datasets)*it)))
+    print('tau pij :: ' + str(tau_pij_tot/(len(datasets)*it)))

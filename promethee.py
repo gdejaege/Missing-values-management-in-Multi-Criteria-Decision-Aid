@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Implementation of PrometheeII.
+"""Implementation of PrometheeII and PII with missing values.
 
 other usefull functions are implemented such as:
     * classes for the preference functions
@@ -13,6 +13,7 @@ from scipy import stats
 import random
 import data_reader as dr
 import copy
+import helpers
 
 NULL = '*'
 
@@ -82,6 +83,9 @@ class GeneralizedType5:
             return res
         else:
             return - res
+
+
+"""Usefull functions."""
 
 
 def check_parameters(method1, method2):
@@ -438,20 +442,19 @@ class PrometheeMV(PrometheeII):
         if alternatives is None:
             alternatives = self.alternatives
 
+        n = len(alternatives)
         netflows = []
-        if (len(alternatives) == 1):
+        if (n == 1):
                 return [1]
 
-        n = len(alternatives)
         for i in range(n):
             flow = 0
             for j in range(n):
                 if i == j:
                     continue
                 flow += Pi[i][j] - Pi[j][i]
-            flow = flow / (len(alternatives) - 1)
+            flow = flow / (n - 1)
             netflows.append(flow)
-        print('ok')
         return netflows
 
     def compute_pairwise_pref(self, alternatives=None, weights=None,
@@ -477,16 +480,25 @@ class PrometheeMV(PrometheeII):
 
         P = self.compute_pairwise_comparisons(alternatives, pref_funcs)
         pi = [[0 for alt in alternatives] for alt in alternatives]
-        for i, alti in enumerate(alternatives):
-            for j, altj in enumerate(alternatives):
-                for c in range(len(weights)):
-                    weight = weights[c]
-                    pi[i][j] += weight * P[c][i][j]
-                    pi[j][i] += weight * P[c][j][i]
+        n = len(alternatives)
+        for i in range(n):
+            for j in range(i+1, n):
+                for c, w in enumerate(weights):
+                    pi[i][j] += w * P[c][i][j]
+                    pi[j][i] += w * P[c][j][i]
         return pi
 
     def compute_pairwise_comparisons(self, A, pref_functs):
-        """Compute the Pcij comparions matrix."""
+        """Compute the Pcij comparions matrix.
+
+        Perfoms by first computing all mono-criterion pairwise preferences where
+        there is no missing evaluation then calls replace_missing_comparisons to
+        fill the missing preferences using the method defined by self.method.
+
+        Input :
+            A -- 2D list of alternatives with possibly missing evaluations
+            pref_functs -- list of pairwise functions
+        """
         n = len(A)
         k = len(A[0])
         P = [[[0 for i in range(n)] for j in range(n)] for t in range(k)]
@@ -501,14 +513,21 @@ class PrometheeMV(PrometheeII):
                         diff = A[i][c] - A[j][c]
                         P[c][i][j] = pref_functs[c].value(diff)
                         P[c][j][i] = pref_functs[c].value(-diff)
+        # helpers.printmatrix(P)
         self.replace_missing_comparisons(P, A)
+        # helpers.printmatrix(P)
         return P
 
     def replace_missing_comparisons(self, P, A):
-        """Replace missing comparisons."""
+        """Replace missing comparisons.
+
+        The pairwise preference missing are replaced by some estimated values.
+        """
         n = len(A)
         k = len(A[0])
+        # Avoid using the estimated values to estimate further values
         P_copy = copy.deepcopy(P)
+
         for c in range(k):
             Pc = P_copy[c]
             for i in range(n):
@@ -516,14 +535,15 @@ class PrometheeMV(PrometheeII):
                     if Pc[i][j] == NULL:
                         if A[i][c] == NULL and A[j][c] == NULL:
                             P[c][i][j] = 0
+                            P[c][j][i] = 0
                         elif A[j][c] == NULL:
-                            P[c][j][i] = self.method(P_copy, i, c, 'col')
-                            P[c][i][j] = self.method(P_copy, i, c, 'row')
+                            P[c][j][i] = self.method(P_copy, i, c, 'col', j)
+                            P[c][i][j] = self.method(P_copy, i, c, 'row', j)
                         else:
-                            P[c][i][j] = self.method(P_copy, j, c, 'col')
-                            P[c][j][i] = self.method(P_copy, j, c, 'row')
+                            P[c][i][j] = self.method(P_copy, j, c, 'col', i)
+                            P[c][j][i] = self.method(P_copy, j, c, 'row', i)
 
-    def replace_by_median(self, P, y, c, direction):
+    def replace_by_median(self, P, y, c, direction, i=-1):
         """Replace Pc(y,*),Pc(*,y) by median of Pc(y,x), Pc(x,y) for all x.
 
         Input
@@ -537,6 +557,7 @@ class PrometheeMV(PrometheeII):
             values = [pyx for pyx in P[c][y] if pyx != NULL]
         else:
             values = [px[y] for px in P[c] if px[y] != NULL]
+        # print(c, y, i, direction, values, np.median(values))
         return np.median(values)
 
     def replace_by_mean(self, P, y, c, direction):
@@ -545,12 +566,15 @@ class PrometheeMV(PrometheeII):
         Input
             direction : 'row' if Pc(y, *), 'col' if Pc(*, y) to replace
         """
+        print('test')
         # print(P)
         # print('c = ' + str(c))
         # print('y = ' + str(y))
         # print('direction = ' + str(direction))
         if direction == 'row':
             values = [pyx for pyx in P[c][y] if pyx != NULL]
+            print(values)
         else:
             values = [px[y] for px in P[c] if px[y] != NULL]
+            print(values)
         return np.mean(values)

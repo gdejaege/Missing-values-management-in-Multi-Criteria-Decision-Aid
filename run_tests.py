@@ -11,16 +11,17 @@ t1 = time.time()
 data = ['HDI', 'SHA', 'EPI', 'GEQ']
 
 # data_reader.test()
-Promethee_class.test_ranking('HDI')
+# Promethee_class.test_ranking('HDI')
 # Promethee_class.test_ranking('SHA')
 # Promethee_class.test_rr_counting_function()
 # Promethee_class.test_rr_analysis(data[1])
 
-# missing_values_comparison.compare_rankings(alt_num=30, it=500)
 
-PrometheeMV_class.test_ranking('HDI')
+# PrometheeMV_class.test_ranking('HDI')
 # PrometheeMV_class.test_replacements()
 # PrometheeMV_class.test_PMV()
+
+missing_values_comparison.compare_rankings(alt_num=30, it=1000)
 
 t2 = time.time()
 print('test durations ::' + str(t2-t1))
