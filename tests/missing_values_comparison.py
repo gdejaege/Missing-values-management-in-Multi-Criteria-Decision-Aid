@@ -1,93 +1,79 @@
 """Comparison the missing values replacement strategies."""
 
+import helpers
 import missing_values as mv
 import promethee as prom
 import data_reader as dr
 import copy
 from scipy import stats
+import numpy as np
 import random
 
 
-def compare_rankings_once(all_alts, alt_num, weights):
+def compare_rankings_once(all_alts, alt_num, weights, del_number, methods):
     """Compare strategies once."""
     seed = random.randint(0, 1000)
+    # print('seed', seed)
     # seed = 289
     # print(seed)
     alts = random.sample(all_alts, alt_num)
-    proportion = 0.05
-    alts_95pc = copy.deepcopy(alts)
 
-    mv.delete_evaluations(alts_95pc, proportion, seed)
-    alts_mean = mv.replace_by_mean(alts_95pc)
-    alts_median = mv.replace_by_median(alts_95pc)
-    alts_knn = mv.replace_by_neighboors(alts_95pc)
+    alts_inc = mv.delete_l_evaluations(alts, del_number, seed)
+    # print("gapped :")
+    # helpers.printmatrix(alts_inc)
 
     PII = prom.PrometheeII(alts, weights=weights, seed=seed)
-    PMV = prom.PrometheeMV(alts_95pc, weights=weights, seed=seed)
-    ranking_init = PII.ranking
-    ranking_pij = PMV.ranking
+    ranking_PII = PII.ranking
 
-    score = PII.compute_netflow(alts_mean)
-    ranking_mean = PII.compute_ranking(score)
+    kendall_taus = {}
+    for method in methods:
+        alts_completed = methods[method](alts_inc)
+        score = PII.compute_netflow(alts_completed)
+        ranking = PII.compute_ranking(score)
+        kendall_taus[method] = stats.kendalltau(ranking_PII, ranking)[0]
 
-    score = PII.compute_netflow(alts_median)
-    ranking_med = PII.compute_ranking(score)
-
-    score = PII.compute_netflow(alts_knn)
-    ranking_knn = PII.compute_ranking(score)
-
-#     for i in range(len(ranking_init)):
-#         print(str(ranking_init[i]) + " :: " + str(ranking_knn[i]) +
-#               " :: " + str(ranking_mean[i]) + " :: " + str(ranking_med[i]))
-#
-#    print(str(stats.kendalltau(ranking_init, ranking_knn)[0]) + " :: " +
-#          str(stats.kendalltau(ranking_init, ranking_mean)[0]) + " :: " +
-#          str(stats.kendalltau(ranking_init, ranking_med)[0]))
-#
-    kendall_taus = {'knn': stats.kendalltau(ranking_init, ranking_knn)[0],
-                    'mean': stats.kendalltau(ranking_init, ranking_mean)[0],
-                    'med': stats.kendalltau(ranking_init, ranking_med)[0],
-                    'pij': stats.kendalltau(ranking_init, ranking_pij)[0]}
     return kendall_taus
 
 
-def compare_rankings(alt_num=20, it=500):
+def compare_rankings(alt_num=20, it=500, del_num=1):
     """Compare strategies."""
-    random.seed()
-    tau_knn_tot = 0
-    tau_med_tot = 0
-    tau_mean_tot = 0
-    tau_pij_tot = 0
+    random.seed(0)
     datasets = ('HR', 'SHA', 'EPI', 'HP')
+    # datasets = ('SHA', 'EPI')
+    header = ["    "] + list(datasets) + ["Total"]
+    methods = {'sreg': mv.replace_by_sreg,
+               'creg': mv.replace_by_creg,
+               'ereg': mv.replace_by_ereg,
+               'knn': mv.replace_by_knn,
+               'mean': mv.replace_by_mean,
+               'med': mv.replace_by_med}
+    #          'pij': mv.replace_by_pij}
+
+    results = {method: [] for method in methods}
+
     for dataset in datasets:
+        print('---------------------- ', dataset, ' -----------------------')
+        results_dataset = {method: 0 for method in methods}
+
         filename = 'data/' + dataset + '/raw.csv'
         all_alts, weights = dr.open_raw(filename)[0], dr.open_raw(filename)[1]
-        # print(len(all_alts))
+        random.shuffle(all_alts)
         if weights == []:
             weights = None
 
-        tau_knn, tau_mean, tau_med, tau_pij = 0, 0, 0, 0
         for i in range(it):
-            taus = compare_rankings_once(all_alts, alt_num, weights)
-            tau_knn += taus['knn']
-            tau_med += taus['med']
-            tau_mean += taus['mean']
-            tau_pij += taus['pij']
+            taus = compare_rankings_once(all_alts, alt_num, weights, del_num,
+                                         methods)
+            # print(taus)
+            for method in methods:
+                results_dataset[method] += taus[method]
 
-        tau_knn_tot += tau_knn
-        tau_med_tot += tau_med
-        tau_mean_tot += tau_mean
-        tau_pij_tot += tau_pij
+        for method in methods:
+            results[method].append(results_dataset[method]/it)
 
-        print('data set:: ' + dataset)
-        print('tau knn :: ' + str(tau_knn/it))
-        print('tau med :: ' + str(tau_med/it))
-        print('tau mean :: ' + str(tau_mean/it))
-        print('tau pij :: ' + str(tau_pij/it))
+    final_matrix = [header]
+    for m in methods:
+        results[m].append(np.mean(results[m]))
+        final_matrix.append([m] + results[m])
 
-    print()
-    print('total average tau:')
-    print('tau knn :: ' + str(tau_knn_tot/(len(datasets)*it)))
-    print('tau med :: ' + str(tau_med_tot/(len(datasets)*it)))
-    print('tau mean :: ' + str(tau_mean_tot/(len(datasets)*it)))
-    print('tau pij :: ' + str(tau_pij_tot/(len(datasets)*it)))
+    helpers.printmatrix(final_matrix)
