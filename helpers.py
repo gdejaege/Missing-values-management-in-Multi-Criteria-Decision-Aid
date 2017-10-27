@@ -1,5 +1,6 @@
 """Helper functions."""
 
+from itertools import chain, combinations
 
 def compute_ranking(scores):
     """Return the ranking given the scores.
@@ -59,3 +60,19 @@ def print_transpose(M, separator=" ", width=6, offset=0):
         printmatrix(new_M, separator, width, offset)
     else:
         print("Don't try to transpose a more than 2D array.")
+
+
+def powerset(iterable):
+    """Compute the powerset.
+
+    powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
+
+    Taken and modified from https://stackoverflow.com/questions/374626/how-can-
+                                    i-find-all-the-subsets-of-a-set-with-
+                                    exactly-n-elements
+    """
+    xs = list(iterable)
+    # note we return an iterator rather than a list
+    ps = chain.from_iterable(combinations(xs,n) for n in range(len(xs)+1))
+    ps = [list(ss) for ss in ps if len(ss) > 0]
+    return ps

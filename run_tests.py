@@ -21,7 +21,9 @@ data = ['HDI', 'SHA', 'EPI', 'GEQ']
 # PrometheeMV_class.test_replacements()
 # PrometheeMV_class.test_PMV()
 
-missing_values_comparison.compare_rankings(alt_num=100, it=100)
+missing_values_comparison.compare_rankings(alt_num=100, it=100, del_num=5)
+# missing_values_comparison.test_guess_eval()
+# missing_values_comparison.test_check_train_dom()
 
 t2 = time.time()
 print('test durations ::' + str(t2-t1))
