@@ -44,4 +44,56 @@ def dom_mse(alt_tr, c, ss):
     return MSE/len(alt_tr)
 
 
+# Not completed!
+def guess_all_bests_estimations(alts):
+    """Try to find the best estimation by learning."""
+    incompletes = [alt for alt in alts if NULL in alt]
+    complete_alts = [alt for alt in alts if NULL not in alt]
+
+    completed_alts = copy.deepcopy(alts)
+
+    for incomplete in incompletes:
+        i = alts.index(incomplete)
+        missing_crits = [k for k, x in enumerate(incomplete) if x == NULL]
+        for c in missing_crits:
+            # method = tuple with method name, and criteria needed.
+            # ex ('reg', [1, 3, 4]) or ('mean', [])
+            estimation = guess_best_estimation(complete_alts, incomplete, c)
+
+
+# Not completed!
+def guess_best_estimation(completes, incomplete, c):
+    """Try to find the best estimation by learning."""
+    # matrix of criteria instead of alternatives:
+    criteria = list(map(list, zip(*completes)))
+
+    # Begin with the machine learning notation : goal = y, data = x
+    y = criteria[c]
+    x = criteria[:c] + criteria[c+1:]
+
+    methods = ['mean', 'med', 'knn']
+    methods = [(m, []) for m in methods]
+    features = [i for i in range(len(x))]
+    for sub_features in helpers.powerset(features):
+        methods.append(('reg', sub_features))
+
+    # print(methods)
+
+    MSE = []
+    for meth in methods:
+        if meth[0] == 'mean':
+            MSE.append(np.std(x[c]))
+        elif meth[0] == 'med':
+            MSE.append(med_mse(x[c]))
+        elif meth[0] == 'knn':
+            MSE.append(knn_mse(completes, c))
+        else:
+            x_tr = [xi for i, xi in enumerate(x) if i in meth[1]]
+            MSE.append(train_regression(y, x_tr))
+
+    print('ok')
+    for i, meth in enumerate(methods):
+        print(meth[0], meth[1], '::',  MSE[i])
+
+
 

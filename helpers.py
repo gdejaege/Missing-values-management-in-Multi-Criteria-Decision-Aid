@@ -2,6 +2,9 @@
 
 from itertools import chain, combinations
 
+NULL = '*'
+
+
 def compute_ranking(scores):
     """Return the ranking given the scores.
 
@@ -14,6 +17,30 @@ def compute_ranking(scores):
     # sort k=range(...) in decreasing order of the netflows[k]
     ranking = sorted(range(len(scores)), key=lambda k: scores[k], reverse=True)
     return ranking
+
+
+def delete_evaluations(alternatives_p, proportion, seed=0):
+    """Delete 'proportion' of the alternatives evaluations."""
+    alternatives = copy.deepcopy(alternatives_p)
+    random.seed(seed)
+    for alt in alternatives:
+        for i in range(len(alt)):
+            if random.randint(0, 100) < proportion*100:
+                alt[i] = NULL
+
+
+def delete_l_evaluations(alternatives_p, l=1, seed=0):
+    """Delete one random evaluation from one alternative."""
+    alternatives = copy.deepcopy(alternatives_p)
+    random.seed(seed)
+    # helpers.printmatrix(alternatives)
+    n = len(alternatives)
+    k = len(alternatives[0])
+    for removal in range(l):
+        (i, c) = random.randrange(0, n), random.randrange(0, k)
+        # print('deleted evaluation', i, c, ':', alternatives[i][c])
+        alternatives[i][c] = NULL
+    return alternatives
 
 
 def printelem(elem, separator=" ", width=6):
@@ -73,6 +100,6 @@ def powerset(iterable):
     """
     xs = list(iterable)
     # note we return an iterator rather than a list
-    ps = chain.from_iterable(combinations(xs,n) for n in range(len(xs)+1))
+    ps = chain.from_iterable(combinations(xs, n) for n in range(len(xs)+1))
     ps = [list(ss) for ss in ps if len(ss) > 0]
     return ps
