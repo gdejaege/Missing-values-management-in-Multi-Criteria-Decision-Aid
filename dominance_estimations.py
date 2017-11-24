@@ -66,6 +66,16 @@ def replace_by_dominance_smallest_diff(alts):
     return completed_alts
 
 
+def get_estimations_by_dominance_knn_4(A):
+    """Temp."""
+    return get_estimations_by_dominance_knn(A, 4)
+
+
+def get_estimations_by_dominance_knn_3(A):
+    """Temp."""
+    return get_estimations_by_dominance_knn(A, 3)
+
+
 def get_estimations_by_dominance_knn_2(A):
     """Temp."""
     return get_estimations_by_dominance_knn(A, 2)
@@ -178,7 +188,8 @@ def train_dom_diff(A_plus, c, a_miss):
     k_ss = helpers.powerset(indices)
     for j in missing:
         k_ss = [ss for ss in k_ss
-                if j not in ss]
+                if j not in ss
+                and len(ss) > 1]      # to perfom tests on intervals!
 
     # print(k_ss)
     deltas = [0 for i in range(len(k_ss))]
@@ -215,7 +226,8 @@ def train_dom(A_plus, c, a_miss):
     k_ss = helpers.powerset(indices)
     for j in missing:
         k_ss = [ss for ss in k_ss
-                if j not in ss]
+                if j not in ss
+                and len(ss) > 1]      # to perfom tests on intervals!
 
     i = 0
     while i < len(k_ss):
@@ -265,7 +277,8 @@ def train_dom_knn(A_plus, c, a_miss, k):
     k_ss = helpers.powerset(indices)
     for j in missing:
         k_ss = [ss for ss in k_ss
-                if j not in ss]
+                if j not in ss
+                and len(ss) > 1]      # to perfom tests on intervals!
 
     i = 0
     while i < len(k_ss):
@@ -468,47 +481,66 @@ def count_dominant_alts(A_plus, criteria, a_miss):
         better = [a for a in better if a[c] >= a_miss[c]]
         worse = [a for a in worse if a[c] <= a_miss[c]]
 
-    return len(better) + len(worse)
+    return len(better), len(worse)
 
 
-def check_dominance_assumption(A):
-    """Check if the assumption (dominate on k-1 => dominate on k) is valid."""
-    n = len(A)
-    k = len(A[0])
+def get_dominant_evaluations(A, criteria, a_miss):
+    """Return the evaluations on c on dominant and dominated alternatives."""
+    better = A
+    worse = A
 
-    res = [[] for c in range(k)]
+    for c in criteria:
+        if a_miss[c] == NULL:
+            print('error, count dominant with a[c] == NULL.')
+            exit()
+        better = [a for a in better if a[c] >= a_miss[c]]
+        worse = [a for a in worse if a[c] <= a_miss[c]]
 
-    for i, a in enumerate(A):
-        del A[i]
-        for c in range(k):
-            a2 = a[:]
-            a2[c] = NULL
-            indices = train_dom(A, c, a2)
-            # print('test')
-            tot_comparables = count_dominant_alts(A, indices, a2)
-            indices.append(c)
-            tot_comparables_with_c = count_dominant_alts(A, indices, a)
-            res[c].append(tot_comparables_with_c/tot_comparables)
-        A.insert(i, a)
+    c = a_miss.index(NULL)
+    better_c = [b[c] for b in better]
+    worse_c = [b[c] for b in worse]
 
-    prop = [np.mean(c) for c in res]
-    std = [np.std(c) for c in res]
-    print('prop', prop)
-    print('std', std)
+    return better_c, worse_c
 
 
 if __name__ == '__main__':
-    dataset = "HR"
+    datasets = ("SHA", "EPI", "HR")
+    header = ["", "MEAN", "STD"]
     alt_num = 100
+    percentiles = [12.5, 25, 37.5, 50, 62.5, 75, 87.5]
+    res = []
+
+    perc = 50
+    dataset = "SHA"
     filename = 'data/' + dataset + '/raw.csv'
-    all_alts, weights = dr.open_raw(filename)[0], dr.open_raw(filename)[1]
+    alts, weights = dr.open_raw(filename)[0], dr.open_raw(filename)[1]
+    alts = random.sample(alts, alt_num)
+    good_ints, bad_ints, no_ints, int_mean, int_std = \
+        check_dominance_interval(alts, perc)
+    res.append([dataset, good_ints, bad_ints, no_ints, int_mean, int_std])
 
-    alts = random.sample(all_alts, alt_num)
-    # alts = normalize(alts, axis=0, copy=True, norm='max')
-    check_dominance_assumption(alts)
+    print('finish')
 
-    # alts = [list(alt) for alt in alts]
+    # for perc in percentiles:
+    #     print(perc)
+    #     res = []
+    #     for dataset in datasets:
+    #         filename = 'data/' + dataset + '/raw.csv'
+    #         alts, weights = dr.open_raw(filename)[0], dr.open_raw(filename)[1]
+    #         alts = random.sample(alts, alt_num)
+    #         alts = normalize(alts, axis=0, copy=True, norm='max')
+    #         alts = [list(alt) for alt in alts]
 
-    # a_missing = alts.pop()
+    #         good_ints, bad_ints, no_ints, int_mean, int_std = \
+    #             check_dominance_interval(alts, perc)
+    #         res.append([dataset, good_ints, bad_ints, no_ints,
+    #                     int_mean, int_std])
 
-    # estimate_by_dom_with_criteria(A_plus, c, a_miss, indices):
+    #     helpers.printmatrix(res)
+    #     print()
+
+#         prop, std = check_dominance_assumption(alts)
+#         res.append([dataset, prop, std])
+#
+#     res.append(["TOTAL", np.mean([r[1] for r in res]),
+#                 np.mean([r[2] for r in res])])

@@ -3,6 +3,7 @@
 import time
 import helpers
 import regression as rg
+import local_regression as lrg
 import dominance_estimations as de
 import knn
 from sklearn.preprocessing import normalize
@@ -13,6 +14,7 @@ import copy
 from scipy import stats
 import numpy as np
 import random
+import csv
 
 NULL = '*'
 
@@ -51,6 +53,7 @@ def compare_rankings(alt_num=20, it=500, del_num=1):
     methods = {  # 'sreg': mv.replace_by_sreg,
                # 'creg': mv.replace_by_creg,
                # 'ereg': mv.replace_by_ereg,
+               'sreg': mv.replace_by_sreg,
                'dom': mv.replace_by_dominance,
                'd_diff': mv.replace_by_dominance_smallest_diff,
                'knn': mv.replace_by_knn,
@@ -92,113 +95,136 @@ def compare_rankings(alt_num=20, it=500, del_num=1):
     helpers.printmatrix(final_matrix)
 
 
-def compare_evaluations(alt_num=100, it=500, del_num=1):
-    """Compare strategies."""
-    random.seed()
+def compare_evaluations(alt_num=100, iterations=5):
+    """Compare strategies.
+
+    Output in different files:
+        1. All the errors for each dataset (prefix dataset):
+            i, j, ev, reg, ...
+
+        2. Statistics for each dataset (prefix dataset_statistics):
+                 MEAN   STD
+            reg
+            ...
+
+        3. Global statistics (prefix Global
+                 SHA ... MEAN   STD
+            reg
+            ...
+    """
     datasets = ('HR', 'SHA', 'EPI', 'HP')
-    datasets = ('SHA', 'EPI', 'HP')
+    datasets = ('HDI', 'SHA', 'HP', 'CPU')
     # datasets = ('SHA',)
-    header = ["    "] + list(range(5)) + ["mean", "std"]
-    header = ["    "] + list(datasets) + ["mean", "std"]
+    global_header = ["    ", "mean", "std"]
     methods = {'reg': rg.get_regression,
+               'lrg': lrg.get_estimation_by_local_regression,
                'dom': de.get_estimations_by_dominance,
                'diff': de.get_estimations_by_dominance_diff,
                'dk': de.get_estimations_by_dominance_knn,
                'dk2': de.get_estimations_by_dominance_knn_2,
-               'knn': knn.get_knn,
+               # 'dk3': de.get_estimations_by_dominance_knn_3,
+               # 'dk4': de.get_estimations_by_dominance_knn_4,
+               # 'knn': knn.get_knn,
                'mean': mv.get_mean,
                'med': mv.get_med}
-    # 'sreg': mv.replace_by_sreg,
-    # 'creg': mv.replace_by_creg,
-    # 'ereg': mv.replace_by_ereg,
-    # 'dom': mv.replace_by_dominance,
-    # 'd_diff': mv.replace_by_dominance_smallest_diff,
-    # 'knn': mv.replace_by_knn,
-    # 'mean': mv.replace_by_mean,
-    # 'med': mv.replace_by_med}
-    # 'pij': mv.replace_by_pij}
 
-    results = {method: [] for method in methods}
-    meth_std = {method: [] for method in methods}
+    dataset_header = ['i', 'c', 'ev', 'lrg', 'reg', 'dom', 'diff', 'dk', 'dk2',
+                      # 'dk3', 'dk4',
+                      'knn', 'mean', 'med']
 
-    # dataset = 'EPI'
-    # for j in range(7):
+    row_methods_order = dataset_header[3:]
+
+    global_res = {method: [] for method in methods}
+    # global_std = {method: [] for method in methods}
+
     for dataset in datasets:
         print('---------------------- ', dataset, ' -----------------------')
         t0 = time.time()
-        results_dataset = {method: [] for method in methods}
+
+        # output file for dataset
+        dataset_output = 'res/error_distribution/' + dataset + '_errors.csv'
+        dataset_statistics_output = 'res/error_distribution/' + dataset  \
+                                    + '_statistics.csv'
+
+        dataset_res = []
+        dataset_res.append(dataset_header)
+        # used for std and mean
+        dataset_res_dico = {method: [] for method in methods}
+
+        # dataset_statistics_res = {method: [] for method in methods}
 
         filename = 'data/' + dataset + '/raw.csv'
         all_alts, weights = dr.open_raw(filename)[0], dr.open_raw(filename)[1]
-        if weights == []:
-            weights = None
 
-        for i in range(it):
-            errors = compare_evaluations_once(all_alts, alt_num, weights,
-                                              del_num, methods)
-            print(i, end="")
-            for method in methods:
-                results_dataset[method].append(errors[method])
+        A = random.sample(all_alts, alt_num)
+        A = normalize(A, axis=0, copy=True, norm='max')
+        A = [list(alt) for alt in A]
 
-        print()
+        for it in range(iterations):
+            res_it = []
+            i, c = random.randint(0, len(A)-1), random.randint(0, len(A[0])-1)
+
+            res_it.append(i)
+            res_it.append(c)
+
+            ev = A[i][c]
+            A[i][c] = NULL
+            errors = compare_evaluations_once(A, ev, methods)
+            A[i][c] = ev
+
+            res_it.append(ev)
+
+            for m in row_methods_order:
+                res = errors[m]
+                res_it.append(res)
+                dataset_res_dico[m].append(res)
+
+            dataset_res.append(res_it)
+
+        # helpers.matrix_to_csv(dataset_res, dataset_output)
+
+        # Make the matrix for the statistics of the given dataset
+        dataset_statistics_res = []
+        dataset_statistics_res.append([dataset, "MEAN", "STD"])
+
         for method in methods:
-            results[method].append(sum(results_dataset[method])/it)
-            meth_std[method] += results_dataset[method]
-            print(method, results[method])
+            # keep all the errors for the global satistics
+            global_res[method] += dataset_res_dico[method]
+
+            line = [method, np.mean(dataset_res_dico[method]),
+                    np.std(dataset_res_dico[method])]
+
+            dataset_statistics_res.append(line)
+
+        helpers.matrix_to_csv(dataset_statistics_res, dataset_statistics_output)
+
         print('time:', time.time() - t0)
 
-    final_matrix = [header]
+    global_matrix = [global_header]
     for m in methods:
-        results[m].append(np.mean(results[m]))
-        results[m].append(np.std(meth_std[m]))
-        final_matrix.append([m] + results[m])
+        std = np.std(global_res[m])
+        mean = np.mean(global_res[m])
+        global_matrix.append([m, mean, std])
 
-    helpers.printmatrix(final_matrix)
-    # print(it)
+    helpers.printmatrix(global_matrix)
 
 
-def compare_evaluations_once(all_alts, alt_num, weights, del_number, methods,
-                             crit=None):
+def compare_evaluations_once(A_miss, ev, methods):
     """Compare strategies once."""
-    seed = random.randint(0, 1000)
-    # print('seed', seed)
-    # seed = 289
-    # print(seed)
-    alts = random.sample(all_alts, alt_num)
-    alts = normalize(alts, axis=0, copy=True, norm='max')
-    alts = [list(alt) for alt in alts]
-    # print(alts)
-
-    i, j = random.randint(0, len(alts) - 1), random.randint(0, len(alts[0]) - 1)
-    if crit is not None:
-        j = crit
-    # j = 5
-    # print(i, len(alts), j, len(alts[0]))
-    ev = alts[i][j]
-    # print('alts:')
-    # helpers.printmatrix(alts)
-
-    alts_inc = copy.deepcopy(alts)
-    alts_inc[i][j] = NULL
-
-    # print('alts_gapped:', i, j, '::', ev)
-    # helpers.printmatrix(alts_inc)
-
-    # alts_inc = helpers.delete_l_evaluations(alts, del_number, seed)
-    # print("gapped :")
-    # helpers.printmatrix(alts_inc)
-
     errors = {}
     for method in methods:
-        estimation = methods[method](alts_inc)
+        estimation = methods[method](A_miss)
         errors[method] = estimation
 
-    med = errors['med']
     for method in errors:
-        # print('method:', method, '::estimation:', errors[method], '::error:',
-        #       abs(errors[method] - ev)/med)
-        # print(errors[method], ev, med)
-        errors[method] = abs(errors[method] - ev)/med
+        if type(errors[method]) == str:
+            print(method, errors[method])
+            errors[method] = errors['mean']
+            print(method, errors[method])
+
+    for method in errors:
+        # print(method, errors[method], ev)
+        errors[method] = errors[method] - ev
 
     return errors
 

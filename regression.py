@@ -111,6 +111,7 @@ def train_regression(y, x,  folds=4):
 
     lms = sorted(lms, key=lambda model: MSEs[lms.index(model)])
     MSEs.sort()
+    # print(MSEs)
     return lms[0], MSEs[0]
 
 
@@ -129,9 +130,7 @@ def regression(y, x, fold, part):
     # x_test2 = [x[i] for i in i_test]
 
     y_tr = [[y[i]] for i in i_tr]
-    # y_tr2 = [y[i] for i in i_tr]
     y_test = [y[i] for i in i_test]
-    # y_test2 = [y[i] for i in i_test]
 
     # helpers.print_transpose([x_tr2, y_tr2])
 

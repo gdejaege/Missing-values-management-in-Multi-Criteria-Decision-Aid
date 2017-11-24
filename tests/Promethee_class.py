@@ -2,6 +2,8 @@
 
 import promethee as prom
 import data_reader as dr
+from sklearn.preprocessing import normalize
+import helpers
 
 
 def test_ranking(dataset='HDI'):
@@ -141,3 +143,23 @@ def test_rr_analysis(data='HDI'):
     rr_instances = promethee.analyse_rr()
     print('rank reversal recap :')
     print(rr_instances)
+
+
+def test_ranking_SHA(dataset='SHA'):
+    """Test that PII computes the same ranking that in the article RobustPII."""
+    data_set = 'data/' + dataset + '/raw.csv'
+    A, weights = dr.open_raw(data_set)[0], dr.open_raw(data_set)[1]
+    A = normalize(A, axis=0, copy=True, norm='max')
+    print(A)
+    A = [list(alt) for alt in A]
+    # print(alts)
+    weights = [0.1, 0.2, 0.2, 0.2, 0.2, 0.1]
+    percentiles = (25, 75)
+    promethee = prom.PrometheeII(A, weights=weights, percentiles=percentiles)
+    scores = promethee.scores
+    rank = promethee.ranking
+    for i in range(len(rank)):
+        print(str(rank[i]) + '::' + str(scores[rank[i]]))
+
+    print(promethee.pi[5][6]/2)
+    print(promethee.alternatives[54][3])

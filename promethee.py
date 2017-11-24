@@ -118,7 +118,7 @@ class PrometheeII:
     """PrometheeII class."""
 
     def __init__(self, alternatives, seed=0, alt_num=-1, ceils=None,
-                 weights=None, coefficients=None):
+                 weights=None, coefficients=None, percentiles=None):
         """Constructor of the PrometheeII class.
 
         Inputs:
@@ -152,18 +152,42 @@ class PrometheeII:
         if(coefficients is not None):
             self.coefficients = coefficients
 
-        # Preference functions
-        diffs = self.max_diff_per_criterion(self.alternatives)
-        if (ceils is None):
-            ceils = [diffs[i] * coeff
-                     for i, coeff in enumerate(self.coefficients)]
-        self.ceils = ceils
-        self.pref_functions = [PreferenceType5(0, ceil) for ceil in ceils]
+        if percentiles == None:
+            # Preference functions
+            diffs = self.max_diff_per_criterion(self.alternatives)
+            if (ceils is None):
+                ceils = [diffs[i] * coeff
+                        for i, coeff in enumerate(self.coefficients)]
+            self.ceils = ceils
+            self.pref_functions = [PreferenceType5(0, ceil) for ceil in ceils]
+
+        else:
+            ceils = self.get_quantiles(self.alternatives, percentiles)
+            print(ceils)
+            self.pref_functions = [PreferenceType5(ceil[0], ceil[1])
+                                   for ceil in ceils]
 
         self.pi = self.compute_pairwise_pref()
 
         self.scores = self.compute_netflow()
         self.ranking = self.compute_ranking(self.scores)
+
+    def get_quantiles(self, A, perc):
+        helpers.printmatrix(A)
+        print(perc)
+        ceils = []
+        n = len(A)
+        k = len(A[0])
+        for c in range(k):
+            diffs = []
+            for i in range(n - 1):
+                for j in range(i + 1, n):
+                    diffs.append(abs(A[i][c] - A[j][c]))
+
+            ceil = [np.percentile(np.array(diffs), perc[0]),
+                    np.percentile(np.array(diffs), perc[1])]
+            ceils.append(ceil)
+        return ceils
 
     def random_parameters(self, s, alternatives, qty=-1):
         """Compute random subset of alternatives and parameters using a seed.

@@ -1,0 +1,22 @@
+#!/bin/bash -l
+
+#PBS -l walltime=00:01:00
+#PBS -l nodes=1:ppn=1
+#PBS -l mem=1gb
+
+#PBS -o res/dom/dominance_assumption.$PBS_JOBD
+#PBS -e res/dom/error.$PBS_JOBD
+
+# module load Python/3.6.1-intel-2017a
+module load scikit-learn/0.18.1-intel-2016b-Python-3.5.2
+
+cd $PBS_O_WORKDIR
+
+echo submit directory: $PWD
+echo jobid: $PBS_JOBID
+echo hostname: $HOSTNAME
+date
+echo --- Start Job ---
+python3 test.py
+echo ---- End Job ----
+date

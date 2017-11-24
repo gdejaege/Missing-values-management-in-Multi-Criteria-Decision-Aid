@@ -43,13 +43,22 @@ def delete_l_evaluations(alternatives_p, l=1, seed=0):
     return alternatives
 
 
-def printelem(elem, separator=" ", width=6):
+def printelem(elem, separator=" ", width=7):
     """Print an element inside a matrix."""
     if isinstance(elem, float) or isinstance(elem, int):
-        template = "{:^#" + str(width) + "." + str(width-2) + "g}"
+        template = "{:>#" + str(width) + "." + str(width-4) + "g}"
     else:
-        template = "{:^" + str(width) + "}"
+        template = "{:>" + str(width) + "}"
     print(template.format(elem), end=separator)
+
+
+def get_elem(elem, width=7):
+    """Get string of an element inside a matrix."""
+    if isinstance(elem, float) or isinstance(elem, int):
+        template = "{:>#" + str(width) + "." + str(width-4) + "g}"
+    else:
+        template = "{:>" + str(width) + "}"
+    return template.format(elem)
 
 
 def printmatrix(M, separator=" ", width=6, offset=0):
@@ -67,7 +76,17 @@ def printmatrix(M, separator=" ", width=6, offset=0):
             print("]")
     else:
         print(" ", end="")
-        printelem(M, width=width)
+        printelem(M, width=width, separator=separator)
+
+
+def matrix_to_csv(M, filename, width=6, separator=", "):
+    """Try to print the matrix to csv file."""
+    output = open(filename, "w")
+    for line in M:
+        for element in line:
+            element_str = get_elem(element, width=width)
+            print(element_str, end=separator, file=output)
+        print(file=output)
 
 
 def print_transpose(M, separator=" ", width=6, offset=0):
