@@ -1,0 +1,32 @@
+submit directory: /gpfs/work/gdejaege/these
+jobid: 1313400
+hostname: nic90
+Wed Nov 29 11:54:03 CET 2017
+--- Start Job ---
+----------------------  HDI  -----------------------
+no deltas ...: no dominant neither dominee ...
+time: 1.169342279434204
+----------------------  SHA  -----------------------
+time: 23.4238224029541
+----------------------  HP  -----------------------
+time: 22.955126523971558
+----------------------  CPU  -----------------------
+time: 23.00365948677063
+[
+  [           mean     std ]
+  [    knn   0.019    0.19 ]
+  [   mean   0.076    0.29 ]
+  [    dom   0.050    0.21 ]
+  [    reg  -0.036    0.21 ]
+  [   diff   0.060    0.26 ]
+  [    dk2  -0.0068    0.18 ]
+  [    med   0.038    0.27 ]
+  [     dk  -0.013    0.17 ]
+]
+test durations ::70.5528154373169
+---- End Job ----
+Wed Nov 29 11:55:20 CET 2017
+Job ID: 1313400
+Job Name: job.pbs
+Resources Requested: walltime=00:10:00,nodes=1:ppn=1,mem=1gb,neednodes=1:ppn=1
+Resources Used: cput=00:01:11,vmem=921428kb,walltime=00:01:19,mem=63840kb,energy_used=0

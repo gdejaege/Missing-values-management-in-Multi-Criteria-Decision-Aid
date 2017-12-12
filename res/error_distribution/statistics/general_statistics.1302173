@@ -1,0 +1,31 @@
+submit directory: /gpfs/work/gdejaege/these
+jobid: 1302173
+hostname: nic65
+Wed Nov 22 10:24:23 CET 2017
+--- Start Job ---
+----------------------  HDI  -----------------------
+time: 387.992374420166
+----------------------  SHA  -----------------------
+time: 8844.607213973999
+----------------------  HP  -----------------------
+time: 8914.58511352539
+----------------------  CPU  -----------------------
+time: 8449.655590057373
+[
+  [           mean     std ]
+  [    reg  0.0056    0.24 ]
+  [    dom   0.018    0.30 ]
+  [     dk  0.0099    0.32 ]
+  [   diff   0.019    0.36 ]
+  [    knn  -0.004    0.33 ]
+  [    med  -0.030    0.40 ]
+  [   mean  0.0015    0.39 ]
+  [    dk2 -0.0074    0.30 ]
+]
+test durations ::26596.851665973663
+---- End Job ----
+Wed Nov 22 17:47:42 CET 2017
+Job ID: 1302173
+Job Name: job.pbs
+Resources Requested: walltime=09:00:00,nodes=1:ppn=1,mem=1gb,neednodes=1:ppn=1
+Resources Used: cput=07:22:24,vmem=922960kb,walltime=07:23:21,mem=44004kb,energy_used=0

@@ -53,6 +53,30 @@ def open_raw(filename):
     return matrix
 
 
+def open_errors(filename):
+    """File with.
+
+    i,   c,  ev,   eg,  dom,  diff,  dk,  dk2,  knn,  mean,   med.
+    return this header + corresponding values (errors)
+    """
+    data = []
+    with open(filename, newline='') as csvfile:
+        content = csv.reader(csvfile, delimiter=',', quotechar='|')
+        i = 0
+        for row in content:
+            if i != 0:
+                clean_row = [float(el) for el in row if el.strip() != '']
+            else:
+                clean_row = row[:-1]
+                i = 1
+            data.append(clean_row)
+
+    header = data[0]
+    errors = data[1:]
+
+    return header, errors
+
+
 def write_raw(alternatives, filename):
     """write classic csv-data-files.
 

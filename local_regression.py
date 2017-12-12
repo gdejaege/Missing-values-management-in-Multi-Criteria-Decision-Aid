@@ -64,7 +64,10 @@ def estimate_by_local_regression(A_complete, c, a_miss):
 
 
 def compute_criteria(A, c):
-    """Get a subset of criteria to be used (avoid overfitting?)."""
+    """Get a subset of criteria to be used (avoid overfitting?).
+
+    The method returns at least 3 criteria.
+    """
     criteria_evaluations = list(map(list, zip(*A)))
     criteria = list(range(len(criteria_evaluations)))
     # print('criteria:', criteria)
@@ -80,10 +83,11 @@ def compute_criteria(A, c):
     criteria = sorted(criteria, key=lambda x: correlations[criteria.index(x)],
                       reverse=True)
     criteria.remove(c)
-
-    # print('correlations', correlations)
     # print('criteria:', criteria)
 
+    # Qu'est ce que je fais ?
+    # i : end -> 0, j: 0 -> i, if we find j s.t.  cor(i,j) > 0.65 : del i
+    # end of list are those with the lowest correlation with c
     i = len(criteria) - 1
     while i > 0 and len(criteria) > 3:
         j = 0
@@ -91,8 +95,7 @@ def compute_criteria(A, c):
         eval_j = criteria_evaluations[criteria[j]]
         while j < i and stats.pearsonr(eval_i, eval_j)[0] < 0.65:
             j += 1
-            if j < i:
-                eval_j = criteria_evaluations[criteria[j]]
+            eval_j = criteria_evaluations[criteria[j]]
 
         if j < i and stats.pearsonr(eval_i, eval_j)[0] >= 0.65:
             # print(i, j, stats.pearsonr(eval_i, eval_j)[0])

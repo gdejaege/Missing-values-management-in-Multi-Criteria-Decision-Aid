@@ -2,6 +2,7 @@
 
 import numpy as np
 from sklearn import linear_model
+from sklearn.model_selection import cross_val_predict
 from helpers import NULL
 import helpers
 from scipy import stats
@@ -51,8 +52,22 @@ def get_regression(A):
     return evaluation
 
 
-def estimate_by_regression(alternatives, criterion, incomplete,
-                           method='simple'):
+def estimate_by_regression(A, c, a_miss):
+    """Try to find a model to guess the evaluations on the given criterion."""
+    k = len(A[0])
+    A_c = [a[c] for a in A]
+    A_but_c = [[a[i] for i in range(k) if i != c] for a in A]
+    a_miss_but_c = [a_miss[i] for i in range(k) if i != c]
+
+    lm = linear_model.LinearRegression()
+
+    lm.fit(A_but_c, A_c)
+    estimation = lm.predict(a_miss_but_c)
+    return estimation
+
+
+def estimate_by_regression_old(alternatives, criterion, incomplete,
+                               method='simple'):
     """Try to find a model to guess the evaluations on the given criterion."""
     # matrix of criteria instead of alternatives:
     criteria = list(map(list, zip(*alternatives)))
@@ -76,6 +91,10 @@ def estimate_by_regression(alternatives, criterion, incomplete,
     MSEs = [i[1] for i in models]
     MSEs = [i/sum(MSEs) for i in MSEs]
 
+    best_ind = MSEs.index(min(MSEs))
+    estimation = float(models[best_ind][0].predict(x_test[best_ind]))
+
+    """
     if method == 'simple':
         best_ind = MSEs.index(min(MSEs))
         estimation = float(models[best_ind][0].predict(x_test[best_ind]))
@@ -88,6 +107,7 @@ def estimate_by_regression(alternatives, criterion, incomplete,
         estimation = sum([e*(1 - err) for e, err in zip(estimations, MSEs)])
         estimation /= sum([1 - i for i in MSEs])
         # print('Error replacement:', estimation)
+    """
 
     return estimation
 

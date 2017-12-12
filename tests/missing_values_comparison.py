@@ -1,6 +1,7 @@
 """Comparison the missing values replacement strategies."""
 
 import time
+from helpers import NULL
 import helpers
 import regression as rg
 import local_regression as lrg
@@ -15,8 +16,6 @@ from scipy import stats
 import numpy as np
 import random
 import csv
-
-NULL = '*'
 
 
 def compare_rankings_once(all_alts, alt_num, weights, del_number, methods):
@@ -95,7 +94,8 @@ def compare_rankings(alt_num=20, it=500, del_num=1):
     helpers.printmatrix(final_matrix)
 
 
-def compare_evaluations(alt_num=100, iterations=5):
+def compare_evaluations(alt_num=100, iterations=5,
+                        outputdir='res/local_regression/'):
     """Compare strategies.
 
     Output in different files:
@@ -112,19 +112,18 @@ def compare_evaluations(alt_num=100, iterations=5):
             reg
             ...
     """
-    datasets = ('HR', 'SHA', 'EPI', 'HP')
     datasets = ('HDI', 'SHA', 'HP', 'CPU')
     # datasets = ('SHA',)
     global_header = ["    ", "mean", "std"]
     methods = {'reg': rg.get_regression,
                'lrg': lrg.get_estimation_by_local_regression,
                'dom': de.get_estimations_by_dominance,
-               'diff': de.get_estimations_by_dominance_diff,
-               'dk': de.get_estimations_by_dominance_knn,
-               'dk2': de.get_estimations_by_dominance_knn_2,
+               # 'diff': de.get_estimations_by_dominance_diff,
+               # 'dk': de.get_estimations_by_dominance_knn,
+               # 'dk2': de.get_estimations_by_dominance_knn_2,
                # 'dk3': de.get_estimations_by_dominance_knn_3,
                # 'dk4': de.get_estimations_by_dominance_knn_4,
-               # 'knn': knn.get_knn,
+               'knn': knn.get_knn,
                'mean': mv.get_mean,
                'med': mv.get_med}
 
@@ -142,16 +141,13 @@ def compare_evaluations(alt_num=100, iterations=5):
         t0 = time.time()
 
         # output file for dataset
-        dataset_output = 'res/error_distribution/' + dataset + '_errors.csv'
-        dataset_statistics_output = 'res/error_distribution/' + dataset  \
-                                    + '_statistics.csv'
+        dataset_output = outputdir + dataset + '.csv'
+        dataset_statistics_output = outputdir + dataset + '_statistics.csv'
 
         dataset_res = []
         dataset_res.append(dataset_header)
         # used for std and mean
         dataset_res_dico = {method: [] for method in methods}
-
-        # dataset_statistics_res = {method: [] for method in methods}
 
         filename = 'data/' + dataset + '/raw.csv'
         all_alts, weights = dr.open_raw(filename)[0], dr.open_raw(filename)[1]
@@ -181,7 +177,7 @@ def compare_evaluations(alt_num=100, iterations=5):
 
             dataset_res.append(res_it)
 
-        # helpers.matrix_to_csv(dataset_res, dataset_output)
+        helpers.matrix_to_csv(dataset_res, dataset_output)
 
         # Make the matrix for the statistics of the given dataset
         dataset_statistics_res = []

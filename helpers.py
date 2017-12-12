@@ -1,8 +1,29 @@
 """Helper functions."""
 
 from itertools import chain, combinations
+from sklearn.preprocessing import normalize
+import data_reader as dr
+import random
 
 NULL = '*'
+
+
+def get_dataset(dataset, n, random_alts=False, normalised=True):
+    """Get a dataset from dataset."""
+    filename = 'data/' + dataset + '/raw.csv'
+    A = dr.open_raw(filename)[0]
+
+    if random_alts:
+        A = random.sample(A, n)
+    else:
+        A = A[:n]
+
+    if normalised:
+        A = normalize(A, axis=0, copy=True, norm='max')
+
+    A = [list(alt) for alt in A]
+
+    return A
 
 
 def compute_ranking(scores):
@@ -81,7 +102,7 @@ def printmatrix(M, separator=" ", width=6, offset=0):
 
 def matrix_to_csv(M, filename, width=6, separator=", "):
     """Try to print the matrix to csv file."""
-    output = open(filename, "w")
+    output = open(filename, "a")
     for line in M:
         for element in line:
             element_str = get_elem(element, width=width)
