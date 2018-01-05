@@ -20,7 +20,7 @@ import copy
 import time
 
 
-def plot(A, points, ranges=None):
+def plot(A, points, ranges=None, normalised=True):
     """Plot the alternatives, the points in the given ranges."""
     symbols = ['r-', 'bv', 'g*', 'ks', 'mo', 'ro']
     symb = iter(symbols)
@@ -32,7 +32,8 @@ def plot(A, points, ranges=None):
         plt.plot(x, y, next(symb), label=meth)
 
     plt.legend()
-    plt.axis([0, 1, -0.5, 1])
+    if normalised:
+        plt.axis([0, 1, -0.5, 1])
     plt.show()
 
 
@@ -49,8 +50,8 @@ def get_evaluations(A_miss, methods):
     return evaluations
 
 
-def main(dataset='fake/test', alt_num=20, iterations=50,
-         methods=['reg', 'lrg', 'knn']):
+def main(dataset='HDI_20', alt_num=100, iterations=30,
+         methods=['reg', 'lrg']):
     """Compare strategies on a fake dataset.
 
     Plot evaluations of a 2D simulation (1/x^2).
@@ -58,8 +59,8 @@ def main(dataset='fake/test', alt_num=20, iterations=50,
     Inputs:
         methods = methods to compare and plot
     """
-    data_file = 'data/' + dataset + '/raw.csv'
-    out_file = 'res/method_plot/' + dataset + '.csv'
+    # data_file = 'data/' + dataset + '/noise_raw.csv'
+    # out_file = 'res/method_plot/' + dataset + '.csv'
     methods_functs = {'reg': rg.get_regression,
                       'lrg': lrg.get_estimation_by_local_regression,
                       'dom': de.get_estimations_by_dominance,
@@ -72,14 +73,20 @@ def main(dataset='fake/test', alt_num=20, iterations=50,
 
     t0 = time.time()
 
-    A = helpers.get_dataset(dataset, alt_num, random_alts=True)
+    normalised = True
+    normalised = False
+    A = helpers.get_dataset(dataset, alt_num, normalised=normalised)
 
     # Each method will have a list of points
     res = {meth: [] for meth in methods}
 
-    for it in range(iterations):
+    step = alt_num // iterations
+    # print(step)
+    for it in range(0, alt_num, step):
+        # print(it)
         res_it = []
         i = random.randint(0, len(A)-1)
+        i = it
 
         # Forcé !!
         c = 1
@@ -93,4 +100,4 @@ def main(dataset='fake/test', alt_num=20, iterations=50,
         for m in evaluations:
             res[m].append((target, evaluations[m]))
 
-    plot(A, res)
+    plot(A, res, normalised=normalised)

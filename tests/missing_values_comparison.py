@@ -5,6 +5,7 @@ from helpers import NULL
 import helpers
 import regression as rg
 import local_regression as lrg
+import layer_regression as layrg
 import dominance_estimations as de
 import knn
 from sklearn.preprocessing import normalize
@@ -94,7 +95,7 @@ def compare_rankings(alt_num=20, it=500, del_num=1):
     helpers.printmatrix(final_matrix)
 
 
-def compare_evaluations(alt_num=100, iterations=5,
+def compare_evaluations(alt_num=100, iterations=2,
                         outputdir='res/local_regression/'):
     """Compare strategies.
 
@@ -113,23 +114,28 @@ def compare_evaluations(alt_num=100, iterations=5,
             ...
     """
     datasets = ('HDI', 'SHA', 'HP', 'CPU')
-    # datasets = ('SHA',)
+    datasets = ('SHA',)
     global_header = ["    ", "mean", "std"]
-    methods = {'reg': rg.get_regression,
-               'lrg': lrg.get_estimation_by_local_regression,
-               'dom': de.get_estimations_by_dominance,
+    methods = {
+               # 'reg': rg.get_regression,
+               # 'lrg': lrg.get_estimation_by_local_regression,
+               # 'dom': de.get_estimations_by_dominance,
+               'lay_all': layrg.layer_regression_all,
+               'lay_guess': layrg.layer_regression_guess_layer,
                # 'diff': de.get_estimations_by_dominance_diff,
                # 'dk': de.get_estimations_by_dominance_knn,
                # 'dk2': de.get_estimations_by_dominance_knn_2,
                # 'dk3': de.get_estimations_by_dominance_knn_3,
                # 'dk4': de.get_estimations_by_dominance_knn_4,
-               'knn': knn.get_knn,
+               # 'knn': knn.get_knn,
                'mean': mv.get_mean,
                'med': mv.get_med}
 
-    dataset_header = ['i', 'c', 'ev', 'lrg', 'reg', 'dom', 'diff', 'dk', 'dk2',
-                      # 'dk3', 'dk4',
-                      'knn', 'mean', 'med']
+    dataset_header = ['i', 'c', 'ev',
+                      'lay_all', "lay_guess",
+                      # 'lrg', 'reg', 'dom', 'diff', 'dk', 'dk2',
+                      # 'dk3', 'dk4', 'knn',
+                      'mean', 'med']
 
     row_methods_order = dataset_header[3:]
 
@@ -177,7 +183,8 @@ def compare_evaluations(alt_num=100, iterations=5,
 
             dataset_res.append(res_it)
 
-        helpers.matrix_to_csv(dataset_res, dataset_output)
+        # print(dataset_res)
+        # helpers.matrix_to_csv(dataset_res, dataset_output)
 
         # Make the matrix for the statistics of the given dataset
         dataset_statistics_res = []
@@ -192,7 +199,7 @@ def compare_evaluations(alt_num=100, iterations=5,
 
             dataset_statistics_res.append(line)
 
-        helpers.matrix_to_csv(dataset_statistics_res, dataset_statistics_output)
+        # helpers.matrix_to_csv(dataset_statistics_res, dataset_statistics_output)
 
         print('time:', time.time() - t0)
 
@@ -210,6 +217,9 @@ def compare_evaluations_once(A_miss, ev, methods):
     errors = {}
     for method in methods:
         estimation = methods[method](A_miss)
+        if type(estimation) == list:
+            err = [abs(e - ev) for e in estimation]
+            estimation = estimation[err.index(min(err))]
         errors[method] = estimation
 
     for method in errors:

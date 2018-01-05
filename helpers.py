@@ -3,20 +3,26 @@
 from itertools import chain, combinations
 from sklearn.preprocessing import normalize
 import data_reader as dr
+import numpy as np
 import random
 
 NULL = '*'
 
 
-def get_dataset(dataset, n, random_alts=False, normalised=True):
+def get_dataset(dataset, n=None, random_alts=False, normalised=True):
     """Get a dataset from dataset."""
     filename = 'data/' + dataset + '/raw.csv'
     A = dr.open_raw(filename)[0]
+
+    if n is None:
+        n = len(A)
 
     if random_alts:
         A = random.sample(A, n)
     else:
         A = A[:n]
+
+    # print(np.array(A))
 
     if normalised:
         A = normalize(A, axis=0, copy=True, norm='max')
@@ -79,10 +85,11 @@ def get_elem(elem, width=7):
         template = "{:>#" + str(width) + "." + str(width-4) + "g}"
     else:
         template = "{:>" + str(width) + "}"
+    # print(template, elem)
     return template.format(elem)
 
 
-def printmatrix(M, separator=" ", width=6, offset=0):
+def printmatrix(M, separator=" ", width=10, offset=0):
     """Try to print a maximal 3D list in a more readable manner."""
     if isinstance(M, list) or isinstance(M, tuple):
         print(" "*offset + "[", end="")
@@ -100,7 +107,7 @@ def printmatrix(M, separator=" ", width=6, offset=0):
         printelem(M, width=width, separator=separator)
 
 
-def matrix_to_csv(M, filename, width=6, separator=", "):
+def matrix_to_csv(M, filename, width=10, separator=", "):
     """Try to print the matrix to csv file."""
     output = open(filename, "a")
     for line in M:

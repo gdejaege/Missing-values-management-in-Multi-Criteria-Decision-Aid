@@ -23,6 +23,13 @@ def get_estimation_by_local_regression(A):
     c = a_miss.index(NULL)
     estimation = estimate_by_local_regression(A_complete, c, a_miss)
     # print(estimation)
+
+    mx, mn = max([a[c] for a in A_complete]), min([a[c] for a in A_complete])
+    if estimation > mx:
+        estimation = mx
+    elif estimation < mn:
+        estimation = mn
+
     return estimation
 
 
