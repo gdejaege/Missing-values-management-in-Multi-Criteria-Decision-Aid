@@ -58,6 +58,8 @@ def estimate_by_regression(A, c, a_miss):
     A_c = [a[c] for a in A]
     A_but_c = [[a[i] for i in range(k) if i != c] for a in A]
     a_miss_but_c = [a_miss[i] for i in range(k) if i != c]
+    a_miss_but_c = np.array(a_miss_but_c)
+    a_miss_but_c = a_miss_but_c.reshape(1, -1)
 
     lm = linear_model.LinearRegression()
 

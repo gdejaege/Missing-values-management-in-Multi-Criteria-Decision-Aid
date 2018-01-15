@@ -25,7 +25,7 @@ random.seed()
 # PrometheeMV_class.test_PMV()
 
 # missing_values_comparison.compare_rankings(alt_num=100, it=300, del_num=1)
-missing_values_comparison.compare_evaluations(alt_num=100, iterations=10000)
+# missing_values_comparison.compare_evaluations(alt_num=100, iterations=3500)
 # missing_values_comparison.test_guess_eval()
 # missing_values_comparison.test_check_train_dom()
 

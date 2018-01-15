@@ -113,11 +113,11 @@ def compare_evaluations(alt_num=100, iterations=2,
             reg
             ...
     """
-    datasets = ('HDI', 'SHA', 'HP', 'CPU')
     datasets = ('SHA',)
+    datasets = ('HDI', 'SHA', 'HP', 'CPU')
     global_header = ["    ", "mean", "std"]
     methods = {
-               # 'reg': rg.get_regression,
+               'reg': rg.get_regression,
                # 'lrg': lrg.get_estimation_by_local_regression,
                # 'dom': de.get_estimations_by_dominance,
                'lay_all': layrg.layer_regression_all,
@@ -133,7 +133,9 @@ def compare_evaluations(alt_num=100, iterations=2,
 
     dataset_header = ['i', 'c', 'ev',
                       'lay_all', "lay_guess",
-                      # 'lrg', 'reg', 'dom', 'diff', 'dk', 'dk2',
+                      # 'lrg',
+                      'reg',
+                      # 'dom', 'diff', 'dk', 'dk2',
                       # 'dk3', 'dk4', 'knn',
                       'mean', 'med']
 
@@ -199,7 +201,8 @@ def compare_evaluations(alt_num=100, iterations=2,
 
             dataset_statistics_res.append(line)
 
-        # helpers.matrix_to_csv(dataset_statistics_res, dataset_statistics_output)
+        helpers.printmatrix(dataset_statistics_res)
+    # helpers.matrix_to_csv(dataset_statistics_res, dataset_statistics_output)
 
         print('time:', time.time() - t0)
 
